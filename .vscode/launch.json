@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+        
+        {
+            "name": "Client",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/client/cmd/microservice",
+            "env": {
+                "TITLE": "Microservice Demo",
+                "CONTENT": "This is a demo of a microservice",
+                "RESPONSE_TIME":"1000",
+                "EXTERNAL_CALL_URL": "http://localhost:8181",
+                "EXTERNAL_CALL_METHOD": "GET",
+                "REQUEST_NAME_OTEL": "microservice-demo-request",
+                "OTEL_SERVICE_NAME": "microservice-demo", 
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "otel-collector:4317",
+                "HTTP_PORT": ":8080",
+                "OTEL": "false",
+            },
+            
+        },
+        
+    ],
+
+}
+
