@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tiago-g-sales/rate-limiter-goexpert/client/internal/model"
-
+	"github.com/tiago-g-sales/middleware-goexpert"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
@@ -34,6 +34,7 @@ func NewServer(templateData *TemplateData) *Webserver {
 func (we *Webserver) CreateServer() *chi.Mux {
 	router := chi.NewRouter()
 
+	router.Use(middleware_goexpert.RateLimiter)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Recoverer)

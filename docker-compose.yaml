@@ -1,14 +1,13 @@
 version: '3'
 services:
-
-
-  zipkin-all-in-one:
-    image: openzipkin/zipkin:latest
-    environment:
-      - JAVA_OPTS=-Xms1024m -Xmx1024m -XX:+ExitOnOutOfMemoryError
+  cache:
+    image: redis:6.2-alpine
     restart: always
     ports:
-      - "9411:9411"
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
 
   jaeger-all-in-one:
     image: jaegertracing/all-in-one:latest
@@ -23,7 +22,7 @@ services:
     image: prom/prometheus:latest
     restart: always
     volumes:
-      - ./.docker/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./client/.docker/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
 
@@ -32,7 +31,7 @@ services:
     restart: always
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./.docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./client/.docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "1888:1888"   # pprof extension
       - "8888:8888"   # Prometheus metrics exposed by the collector
@@ -41,8 +40,7 @@ services:
       - "4317:4317"   # OTLP gRPC receiver
       - "55679:55679" # zpages extension      
     depends_on:
-      - jaeger-all-in-one
-      - zipkin-all-in-one      
+      - jaeger-all-in-one   
 
   grafana:
     container_name: grafana-goexpert
@@ -56,7 +54,7 @@ services:
   client:
     container_name: rate-limiter-goexpert
     build:
-      context: ./client
+      context: .
     environment:
       - TITLE=Microservice Demo
       - CONTENT=This is a demo of a microservice
@@ -65,13 +63,20 @@ services:
       - REQUEST_NAME_OTEL=microservice-client-request
       - OTEL_SERVICE_NAME=microservice-client
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - HTTP_REQUEST_IP_TPS=10
+      - HTTP_REQUEST_APIKEY_TPS=10      
+      - HTTP_REQUEST_TIME_BLOCK=5s
       - HTTP_PORT=:8080
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
     ports:
       - "8080:8080"
     depends_on:
       - jaeger-all-in-one
-      - zipkin-all-in-one
       - prometheus
       - otel-collector
-
+volumes:
+  cache:
+    driver: local
 
