@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tiago-g-sales/rate-limiter-goexpert/client/internal/model"
-	"github.com/tiago-g-sales/middleware-goexpert"
+	"github.com/tiago-g-sales/rate-limiter-goexpert/client/pkg"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
@@ -34,7 +34,10 @@ func NewServer(templateData *TemplateData) *Webserver {
 func (we *Webserver) CreateServer() *chi.Mux {
 	router := chi.NewRouter()
 
-	router.Use(middleware_goexpert.RateLimiter)
+	router.Use(pkg.RateLimiter)
+	router.Use(
+		middleware.SetHeader("Content-Type", "application/json"),
+	)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Recoverer)
@@ -85,16 +88,7 @@ func (h *Webserver) HandleRequest(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, INVALID_ZIP_CODE, http.StatusUnprocessableEntity)
 			return
 		}
-	
-		if dto.Cep == ""{
-			http.Error(w, INVALID_ZIP_CODE , http.StatusUnprocessableEntity )
-			return
-		}
-	
-		if len(dto.Cep) > LEN_ZIP_CODE || len(dto.Cep) < LEN_ZIP_CODE  {
-			http.Error(w, INVALID_ZIP_CODE , http.StatusUnprocessableEntity )
-			return		
-		}
+
 
 
 		if h.TemplateData.ExternalCallMethod == "GET" {

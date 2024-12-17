@@ -68,7 +68,7 @@ services:
       - HTTP_REQUEST_TIME_BLOCK=5s
       - HTTP_PORT=:8080
       - REDIS_HOST=cache
-      - REDIS_PORT=6379
+      - REDIS_PORT=:6379
       - REDIS_PASSWORD=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
     ports:
       - "8080:8080"

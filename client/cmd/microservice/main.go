@@ -97,6 +97,8 @@ func main() {
 		}
 	}
 
+
+
 	tracer := otel.Tracer("microservice-tracer")
 	templateData := &web.TemplateData{
 		Title:              viper.GetString("TITLE"),
