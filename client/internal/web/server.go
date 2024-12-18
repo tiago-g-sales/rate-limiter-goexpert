@@ -2,15 +2,15 @@ package web
 
 import (
 	"encoding/json"
-	"io"
+	"net"
 	"net/http"
 
 	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tiago-g-sales/rate-limiter-goexpert/client/internal/model"
+	"github.com/tiago-g-sales/rate-limiter-goexpert/client/internal/service"
 	"github.com/tiago-g-sales/rate-limiter-goexpert/client/pkg"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -44,7 +44,7 @@ func (we *Webserver) CreateServer() *chi.Mux {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Timeout(60 * time.Second))
 	// promhttp
-	router.Handle("/metrics", promhttp.Handler())
+	//router.Handle("/metrics", promhttp.Handler())
 	router.Get("/", we.HandleRequest)
 	return router
 }
@@ -60,7 +60,8 @@ type TemplateData struct {
 }
 
 const(
-	INVALID_ZIP_CODE = "invalid zipcode"
+	API_KEY = "API_KEY"
+	INVALID_IP_ADRESS = "invalid Ip Adress"
 	NOTFOUND_ZIP_COD = "can not find zipcode"
 	LEN_ZIP_CODE = 8
 )
@@ -78,16 +79,38 @@ func (h *Webserver) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 
 
+	parameter := service.FormatParameter(ctx)
+	
+	ip,_, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		http.Error(w, INVALID_IP_ADRESS, http.StatusUnprocessableEntity)
+		return
+	}	
+	parameter.Ip = ip
+	parameter.ApiKey = r.Header.Get(API_KEY) 
+
+
+	result := service.GetParameter(ctx, *parameter)
+	if result != nil{
+		service.ValidateRateLimiter(ctx, *result)
+	}else {
+		service.InserirParametros(ctx, *parameter)
+	}
+
+
 	if h.TemplateData.ExternalCallURL != "" {
 		var req *http.Request
 		var err error
 
-		var dto model.Cep
+		var dto model.Parameter
 		err = json.NewDecoder(r.Body).Decode(&dto)
 		if err != nil {
-			http.Error(w, INVALID_ZIP_CODE, http.StatusUnprocessableEntity)
+			http.Error(w, INVALID_IP_ADRESS, http.StatusUnprocessableEntity)
 			return
 		}
+
+
+
 
 
 
@@ -105,33 +128,11 @@ func (h *Webserver) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 		
-		h := http.Client{}
-
-		q := req.URL.Query() 
-		q.Add("cep", dto.Cep)
-		req.URL.RawQuery = q.Encode()	
-		resp, err := h.Do(req)
-		if err != nil {
-			http.Error(w, NOTFOUND_ZIP_COD, http.StatusNotFound) 
-			return
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-	
-		temp := model.Temperatura{}
-
-		err= json.Unmarshal(body, &temp)
-		if err != nil{
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(temp)
+		//json.NewEncoder(w).Encode(temp)
 
 	
 
