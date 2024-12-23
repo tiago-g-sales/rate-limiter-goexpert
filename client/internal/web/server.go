@@ -1,15 +1,12 @@
 package web
 
 import (
-	"encoding/json"
 	"net"
 	"net/http"
-
 	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/tiago-g-sales/rate-limiter-goexpert/client/internal/model"
 	"github.com/tiago-g-sales/rate-limiter-goexpert/client/internal/service"
 	"github.com/tiago-g-sales/rate-limiter-goexpert/client/pkg"
 	"go.opentelemetry.io/otel"
@@ -87,58 +84,24 @@ func (h *Webserver) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}	
 	parameter.Ip = ip
-	parameter.ApiKey = r.Header.Get(API_KEY) 
+	apiRequest := r.Header.Get(API_KEY) 
 
 
-	result := service.GetParameter(ctx, *parameter)
-	if result != nil{
-		service.ValidateRateLimiter(ctx, *result)
+	if parameter.ApiKeyParameter == apiRequest{
+		parameter.ApiKeyRequest = r.Header.Get(API_KEY) 
+	}
+
+	parameterResult := service.GetParameter(ctx, *parameter)
+	if parameterResult != nil{
+		service.UpdateRateLimiter(ctx, *parameterResult)
 	}else {
 		service.InserirParametros(ctx, *parameter)
 	}
 
 
-	if h.TemplateData.ExternalCallURL != "" {
-		var req *http.Request
-		var err error
-
-		var dto model.Parameter
-		err = json.NewDecoder(r.Body).Decode(&dto)
-		if err != nil {
-			http.Error(w, INVALID_IP_ADRESS, http.StatusUnprocessableEntity)
-			return
-		}
-
-
-
-
-
-
-		if h.TemplateData.ExternalCallMethod == "GET" {
-			req, err = http.NewRequestWithContext(ctx, "GET", h.TemplateData.ExternalCallURL, nil)
-		} else if h.TemplateData.ExternalCallMethod == "POST" {
-			req, err = http.NewRequestWithContext(ctx, "POST", h.TemplateData.ExternalCallURL, nil)
-		} else {
-			http.Error(w, "Invalid ExternalCallMethod", http.StatusInternalServerError)
-			return
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-		
-		
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		//json.NewEncoder(w).Encode(temp)
-
 	
-
-	
-
-	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
 
 }

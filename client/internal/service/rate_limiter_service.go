@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -20,10 +21,16 @@ func FormatParameter(ctx context.Context) *model.Parameter {
 		fmt.Println("Error Parse HTTP_REQUEST_TIME_BLOCK")
 	}
 
+	apiKeyHttpTPS := viper.GetString("HTTP_REQUEST_APIKEY_TPS")
+	apiKey := strings.Split(apiKeyHttpTPS, ":")
+
+
 	parameter := model.Parameter{	
-		TpsLimitApiKey: viper.GetString("HTTP_REQUEST_APIKEY_TPS"),
+		ApiKeyParameter:apiKey[0],
+		TpsLimitApiKey: apiKey[1],
 		TpsLimitIP: viper.GetString("HTTP_REQUEST_IP_TPS"),
 		RequestTimeBlock: float64(duration),
+		RequestBlocked: false,
 	}
 
 	return &parameter
@@ -42,9 +49,15 @@ func GetParameter(ctx context.Context, parameter model.Parameter) *model.Paramet
 
 }
 
-func ValidateRateLimiter(ctx context.Context, parameter model.Parameter){
+func UpdateRateLimiter(ctx context.Context, parameter model.Parameter){
 
-	fmt.Println("Validating rate limiter")
+	database :=  database.DatabaseImpl{
+	Client: config.ConfigRedis(),
+	}
+	parameter.TpsCount++
+	database.AtualizarParametros(ctx, parameter)
+	
+	fmt.Println("Update rate limiter")
 }
 
 func InserirParametros(ctx context.Context, parameter model.Parameter) {
