@@ -47,7 +47,7 @@ func RateLimiter(next http.Handler) http.Handler {
 		}
 		
 		if !isValid {
-			bloquerRequest(parameter)
+			bloquerRequest(*p)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests)
 			json.NewEncoder(w).Encode(model.MsgBlocked{Message: MSG_BLOCKED})	
@@ -75,7 +75,8 @@ func bloquerRequest( parameter model.Parameter ) {
 func validateRateLimiter( parameter model.Parameter ) bool{
 
 
-	if parameter.RequestBlocked == true {
+	if parameter.RequestBlocked == bool(true) {
+		fmt.Println("Request bloqued!")
 		return false
 	}
 
@@ -92,6 +93,7 @@ func validateRateLimiter( parameter model.Parameter ) bool{
 	}
 
 	if tpsRequest > tpsLimit {
+		
 		return false
 	}
 

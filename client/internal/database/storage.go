@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -38,12 +37,6 @@ type ParameterRedis struct {
 func (db DatabaseImpl) ConsultarParametros(ctx context.Context, parameter model.Parameter) *model.Parameter {
 
 	defer db.Client.Close()
-	// Ping the Redis server to check the connection
-	pong, err := db.Client.Ping(ctx).Result()
-	if err != nil {
-	log.Fatal("Error connecting to Redis:", err)
-	}
-	fmt.Println("Connected to Redis:", pong)
 
 	p := ParameterRedis{}
 	value, err := db.Client.Get(ctx, parameter.Ip ).Result()
@@ -90,25 +83,10 @@ func (db DatabaseImpl) InserirParametros(ctx context.Context, parameter model.Pa
 		log.Fatal("Error MarshalBinary to Redis:", err)
 	}
 
-	// Ping the Redis server to check the connection
-	pong, err := db.Client.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal("Error connecting to Redis:", err)
-	}
-	fmt.Println("Connected to Redis:", pong)
-
-	err = db.Client.Set(ctx, parameter.Ip, value, 10*time.Minute).Err()
+	err = db.Client.Set(ctx, parameter.Ip, value, 0).Err()
 	if err != nil {
 		log.Fatal("Error Insert to Redis:", err)
 	}
-
-	v, err := db.Client.Get(ctx, parameter.Ip).Result()
-	if err != nil {
-		log.Fatal("Error Select to Redis:", err)
-	}
-	fmt.Printf("The name of the parameter is %s \n", v)
-
-
 
 }
 
@@ -132,24 +110,10 @@ func (db DatabaseImpl) AtualizarParametros(ctx context.Context, parameter model.
 		log.Fatal("Error MarshalBinary to Redis:", err)
 	}
 
-	// Ping the Redis server to check the connection
-	pong, err := db.Client.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal("Error connecting to Redis:", err)
-	}
-	fmt.Println("Connected to Redis:", pong)
-
-	err = db.Client.Set(ctx, parameter.Ip, value, 10*time.Minute).Err()
+	err = db.Client.Set(ctx, parameter.Ip, value, 0).Err()
 	if err != nil {
 		log.Fatal("Error Insert to Redis:", err)
 	}
-
-	v, err := db.Client.Get(ctx, parameter.Ip).Result()
-	if err != nil {
-		log.Fatal("Error Select to Redis:", err)
-	}
-	fmt.Printf("The name of the parameter is %s \n", v)
-
 
 
 }
@@ -159,42 +123,35 @@ func (db DatabaseImpl) AtualizarParametros(ctx context.Context, parameter model.
 func (db DatabaseImpl) BloquerParametros(ctx context.Context, parameter model.Parameter) {
 	
 	defer db.Client.Close()
-
 	p := ParameterRedis{
- 
+		TpsLimitApiKey: parameter.TpsLimitApiKey,
+		TpsLimitIP: parameter.TpsLimitIP,
+		RequestTimeBlock: int(parameter.RequestTimeBlock),
+		TpsCount: int(parameter.TpsCount),
+		RequestTime: int(parameter.RequestTime.Unix()),  
 		ApiKeyParameter: parameter.ApiKeyParameter,
 		ApiKeyRequest: parameter.ApiKeyRequest,
 		Ip: parameter.Ip,
 		RequestBlocked: parameter.RequestBlocked,
 	}
+
 	value, err := p.MarshalBinary()
 	if err != nil {
 		log.Fatal("Error MarshalBinary to Redis:", err)
 	}
 
-	// Ping the Redis server to check the connection
-	pong, err := db.Client.Ping(ctx).Result()
+	err = db.Client.Set(ctx, parameter.Ip, value, 0).Err()
 	if err != nil {
-		log.Fatal("Error connecting to Redis:", err)
-	}
-	fmt.Println("Connected to Redis:", pong)
-	fmt.Println("RequestTimeBlock :", p.RequestTimeBlock)
-
-	err = db.Client.Del(ctx, p.Ip).Err()
-	if err != nil {
-		log.Fatal("Error Delete to Redis:", err)
+		log.Fatal("Error Insert to Redis:", err)
 	}
 
-	//err = db.Client.Set(ctx, p.Ip, value, 0).Err()
-	//if err != nil {
-//		log.Fatal("Error Insert to Redis:", err)
-//	}
-
-	fmt.Printf("The name of the parameter is %s \n",value)
-
-
+	err = db.Client.Expire(ctx, parameter.Ip, time.Duration(parameter.RequestTimeBlock)).Err()
+	if err != nil {
+		log.Fatal("Error Expire to Redis:", err)
+	}
 
 }
+
 
 
 func (m *ParameterRedis) MarshalBinary() ([]byte, error) {

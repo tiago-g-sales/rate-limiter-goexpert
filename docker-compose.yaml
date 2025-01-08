@@ -60,23 +60,25 @@ services:
       - CONTENT=This is a demo of a microservice
       - EXTERNAL_CALL_URL=http://weather-otel-server:8181
       - EXTERNAL_CALL_METHOD=GET
-      - REQUEST_NAME_OTEL=microservice-client-request
-      - OTEL_SERVICE_NAME=microservice-client
+      - REQUEST_NAME_OTEL=microservice-demo-request
+      - OTEL_SERVICE_NAME=microservice-demo
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
-      - HTTP_REQUEST_IP_TPS=10
-      - APIKEY_HTTP_REQUEST_TPS=ABC123:10      
-      - HTTP_REQUEST_TIME_BLOCK=5s
+      - HTTP_REQUEST_IP_TPS=2
+      - HTTP_REQUEST_APIKEY_TPS=ABC123:3      
+      - HTTP_REQUEST_TIME_BLOCK=2s
       - HTTP_PORT=:8080
       - REDIS_HOST=cache
       - REDIS_PORT=:6379
       - REDIS_PASSWORD=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+      - OTEL="true",
     ports:
       - "8080:8080"
     depends_on:
       - jaeger-all-in-one
       - prometheus
       - otel-collector
+      - cache
 volumes:
   cache:
     driver: local
-
+    
