@@ -1,12 +1,10 @@
-# weather-otel-goexpert
-Sistema distribuido em 2 serviços que retornam o clima atual baseado em um CEP informado
+# Rate-limiter-goexpert
+Sistema API Web com validação quantidade de requisições baseado em parametros, sendo por Ip de origem ou APIKey
 
-# Desafio GOLang Observabilidade com trace distribuído - Consulta Temperatura baseado em um CEP informado - FullCycle 
+# Desafio GOLang rate Limiter - FullCycle 
 
 Aplicação em Go sendo: 
   - Servidor HTTP Rest Client
-  - Servidor HTTP Rest Server
-  - Servidor Zipkin para apresentação do trace distribuído
   - Servidor Jaeger para apresentação do trace distribuído
   - Servidor Prometheus
   - Servidor Opentelemetry
@@ -17,29 +15,14 @@ Aplicação em Go sendo:
 
 ## Funcionalidades
 
-- **Consulta de Temperatura com retorno Localidade, Celsius, Kelvin e Fahrenheit**
-  - O servidor permite consultar a temperatura informando um CEP.
-  - Retorno esperado:
-```
-  {
-  "city": "São Paulo",
-	"temp_C": 22.3,
-	"temp_F": 72.1,
-	"temp_K": 295.3
-  } 
-``` 
-  - Sendo city = A cidade do cep informado
-  - Sendo temp_F = Fahrenheit
-  - Sendo temp_C = Celsius
-  - Sendo temp_K = Kelvin  
+- **Consulta**
+  - O servidor permite executar metodo get rota base.
 
 ## Como Utilizar localmente:
 
 1. **Requisitos:** 
    - Certifique-se de ter o Go instalado em sua máquina.
    - Certifique-se de ter o Docker instalado em sua máquina.
-   - Foi atulizado a API viaCEP para encontrar a localização que deseja consultar a temperatura: https://viacep.com.br/
-   - Foi utilizado a API WeatherAPI para consultar as temperaturas desejadas: https://www.weatherapi.com/
 
 
 &nbsp;
@@ -47,14 +30,14 @@ Aplicação em Go sendo:
 &nbsp;
 
 ```bash
-git clone https://github.com/tiago-g-sales/weather-otel-goexpert.git
+git clone https://github.com/tiago-g-sales/rate-limiter-goexpert.git
 ```
 &nbsp;
 3. **Acesse a pasta do app:**
 &nbsp;
 
 ```bash
-cd weather-otel-goexpert
+cd rate-limiter-goexpert
 ```
 &nbsp;
 4. **Rode o docker-compose para buildar e executar toda a stack de observabilidade:**
@@ -66,39 +49,48 @@ cd weather-otel-goexpert
 
 &nbsp;
 
-
 ## Como testar localmente:
+
+### CONFIGURAÇÕES
+  - Variaveis do arquivo docker compose
+      - Quantidade de requisições por segundo com origem no mesmo IP 
+          HTTP_REQUEST_IP_TPS=2
+      - Quantidade de requisições por segundo com a mesma APIKEY 
+        sendo id da APIKEY:Quatidade de requisições por segundo  
+          HTTP_REQUEST_APIKEY_TPS=ABC123:3      
+      - Tempo de bloqueio após exceder a quantidade de request 
+          HTTP_REQUEST_TIME_BLOCK=10s
 
 ### Portas
 HTTP server on port :8080 <br />
 
-### HTTP
+### HTTP COM APIKEY
  - Execute o curl abaixo ou use um aplicação client REST para realizar a requisição.   
-  curl --request POST \
-  --url http://localhost:8080/ \
-  --header 'Content-Type: application/json' \
-  --header 'User-Agent: insomnia/10.0.0' \
-  --data '{
-	"cep": "04911000"
-}'
+    curl --request GET \
+      --url http://localhost:8080/ \
+      --header 'API_KEY: ABC123' \
+      --header 'User-Agent: insomnia/10.0.0'
+
+### HTTP POR IP DE ORIGEM
+ - Execute o curl abaixo ou use um aplicação client REST para realizar a requisição.   
+    curl --request GET \
+      --url http://localhost:8080/ \
+      --header 'User-Agent: insomnia/10.0.0'
 
 &nbsp;
-5. **Acessar o Zipkin para consulta do trace distribuído:**
-
-  - http://localhost:9411/
 
 &nbsp;
-6. **Acessar o Jaeger para consulta do trace distribuído:**
+5. **Acessar o Jaeger para consulta do trace distribuído:**
 
   - http://localhost:16686/ 
 
 &nbsp;
-7. **Acessar o Grafana para consulta do trace distribuído:**
+6. **Acessar o Grafana para consulta do trace distribuído:**
 
   - http://localhost:3001/
 
 &nbsp;
-8. **Acessar o Prometheus para consulta do trace distribuído:**
+7. **Acessar o Prometheus para consulta do trace distribuído:**
 
   - http://localhost:9090/
   
