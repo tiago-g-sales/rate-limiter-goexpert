@@ -64,8 +64,8 @@ func bloquerRequest( parameter model.Parameter ) {
 	database :=  database.DatabaseImpl{
 		Client: config.ConfigRedis(),
 	}
-
 	parameter.RequestBlocked = true
+	parameter.InitialTimeRequestBlocked = time.Now()
 	database.BloquerParametros(ctx, parameter)	
 
 }
@@ -73,14 +73,23 @@ func bloquerRequest( parameter model.Parameter ) {
 
 
 func validateRateLimiter( parameter model.Parameter ) bool{
-
-
-	if parameter.RequestBlocked == bool(true) {
-		fmt.Println("Request bloqued!")
-		return false
+	ctx := context.Background()
+	database :=  database.DatabaseImpl{
+		Client: config.ConfigRedis(),
 	}
 
 	now := time.Now()
+
+	if parameter.RequestBlocked == bool(true) {
+		timeBlocked := parameter.InitialTimeRequestBlocked
+		timeRequestBlocked := float64(now.Sub(timeBlocked).Nanoseconds())
+		if timeRequestBlocked > parameter.RequestTimeBlock {
+			database.ExcluirParametros(ctx, parameter)
+			return true
+		}
+		return false
+	}
+
 	tpsIpTimeRequest := float64(now.Sub(parameter.RequestTime).Seconds())
 	parameter.TpsCount++
 	tpsRequest := parameter.TpsCount / tpsIpTimeRequest

@@ -21,15 +21,16 @@ type DatabaseImpl struct {
 }
 
 type ParameterRedis struct {
-	TpsLimitApiKey 		string 	`redis:"tpsLimitApiKey"`
-	TpsLimitIP 			string 	`redis:"tpsLimitIP"`
-	RequestTimeBlock  	int 	`redis:"requestTimeBlock"`
-	TpsCount 			int    	`redis:"tpsCount"`
-	RequestTime 		int 	`redis:"requestTime"`
-	ApiKeyParameter  	string 	`redis:"apiKeyParameter"`
-	ApiKeyRequest  		string 	`redis:"apiKeyRequest"`
-	Ip					string 	`redis:"ip"`
-	RequestBlocked		bool 	`redis:"requestBlocked"`
+	TpsLimitApiKey 				string 		`redis:"tpsLimitApiKey"`
+	TpsLimitIP 					string 		`redis:"tpsLimitIP"`
+	RequestTimeBlock  			int 		`redis:"requestTimeBlock"`
+	TpsCount 					int    		`redis:"tpsCount"`
+	RequestTime 				int 		`redis:"requestTime"`
+	ApiKeyParameter  			string 		`redis:"apiKeyParameter"`
+	ApiKeyRequest  				string 		`redis:"apiKeyRequest"`
+	Ip							string 		`redis:"ip"`
+	RequestBlocked				bool 		`redis:"requestBlocked"`
+	InitialTimeRequestBlocked 	int 		`redis:"initialTimeRequestBlocked"`
  }
  
 
@@ -58,6 +59,7 @@ func (db DatabaseImpl) ConsultarParametros(ctx context.Context, parameter model.
 		ApiKeyRequest: p.ApiKeyRequest,
 		Ip: p.Ip,
 		RequestBlocked: p.RequestBlocked,
+		InitialTimeRequestBlocked:  time.Unix(int64(p.InitialTimeRequestBlocked),0),
 	}
 
 	return &parameterResult
@@ -75,7 +77,8 @@ func (db DatabaseImpl) InserirParametros(ctx context.Context, parameter model.Pa
 		ApiKeyParameter: parameter.ApiKeyParameter,
 		ApiKeyRequest: parameter.ApiKeyRequest,
 		Ip: parameter.Ip,
-		RequestBlocked: parameter.RequestBlocked,
+		RequestBlocked:  parameter.RequestBlocked,
+		InitialTimeRequestBlocked: 0,
 	}
 
 	value, err := p.MarshalBinary()
@@ -95,14 +98,15 @@ func (db DatabaseImpl) AtualizarParametros(ctx context.Context, parameter model.
 	defer db.Client.Close()
 	p := ParameterRedis{
 		TpsLimitApiKey: parameter.TpsLimitApiKey,
-		TpsLimitIP: parameter.TpsLimitIP,
+		TpsLimitIP: parameter.TpsLimitIP,	
 		RequestTimeBlock: int(parameter.RequestTimeBlock),
-		TpsCount: int(parameter.TpsCount),
-		RequestTime: int(parameter.RequestTime.Unix()),  
+		RequestTime: int(parameter.RequestTime.Unix()),
 		ApiKeyParameter: parameter.ApiKeyParameter,
 		ApiKeyRequest: parameter.ApiKeyRequest,
 		Ip: parameter.Ip,
-		RequestBlocked: parameter.RequestBlocked,
+		RequestBlocked:  parameter.RequestBlocked,
+		InitialTimeRequestBlocked: int(parameter.InitialTimeRequestBlocked.Unix()),	
+		TpsCount: int(parameter.TpsCount),
 	}
 
 	value, err := p.MarshalBinary()
@@ -128,11 +132,13 @@ func (db DatabaseImpl) BloquerParametros(ctx context.Context, parameter model.Pa
 		TpsLimitIP: parameter.TpsLimitIP,
 		RequestTimeBlock: int(parameter.RequestTimeBlock),
 		TpsCount: int(parameter.TpsCount),
-		RequestTime: int(parameter.RequestTime.Unix()),  
+		RequestTime: int(parameter.RequestTime.Unix()),
 		ApiKeyParameter: parameter.ApiKeyParameter,
 		ApiKeyRequest: parameter.ApiKeyRequest,
-		Ip: parameter.Ip,
+		Ip: parameter.Ip,		
 		RequestBlocked: parameter.RequestBlocked,
+		InitialTimeRequestBlocked:int(parameter.InitialTimeRequestBlocked.Unix()),
+
 	}
 
 	value, err := p.MarshalBinary()
@@ -145,13 +151,17 @@ func (db DatabaseImpl) BloquerParametros(ctx context.Context, parameter model.Pa
 		log.Fatal("Error Insert to Redis:", err)
 	}
 
-	err = db.Client.Expire(ctx, parameter.Ip, time.Duration(parameter.RequestTimeBlock)).Err()
+}
+
+func (db DatabaseImpl) ExcluirParametros(ctx context.Context, parameter model.Parameter) {
+
+	defer db.Client.Close()
+	err := db.Client.Del(ctx, parameter.Ip).Err()
 	if err != nil {
-		log.Fatal("Error Expire to Redis:", err)
+		log.Fatal("Error Insert to Redis:", err)
 	}
 
 }
-
 
 
 func (m *ParameterRedis) MarshalBinary() ([]byte, error) {
