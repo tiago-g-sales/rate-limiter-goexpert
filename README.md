@@ -53,12 +53,12 @@ cd rate-limiter-goexpert
 
 ### CONFIGURAÇÕES
   - Variaveis do arquivo docker compose
-      - Quantidade de requisições por segundo com origem no mesmo IP 
+      - Quantidade de requisições por segundo com origem no mesmo IP  <br />
           HTTP_REQUEST_IP_TPS=2
-      - Quantidade de requisições por segundo com a mesma APIKEY 
-        sendo id da APIKEY:Quatidade de requisições por segundo  
+      - Quantidade de requisições por segundo com a mesma APIKEY      <br />
+        sendo id da APIKEY:Quatidade de requisições por segundo       <br />
           HTTP_REQUEST_APIKEY_TPS=ABC123:3      
-      - Tempo de bloqueio após exceder a quantidade de request 
+      - Tempo de bloqueio após exceder a quantidade de request        <br />
           HTTP_REQUEST_TIME_BLOCK=10s
 
 ### Portas
